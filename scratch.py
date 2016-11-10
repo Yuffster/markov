@@ -1,7 +1,13 @@
 from markov import MarkovChain
 
-m = MarkovChain(size=3)
+m = MarkovChain(size=2)
 m.integrate(open('ignore/corpus.txt').read())
-print('Vocab length', len(m._chains.keys()))
-print(" ".join(list(m.generate(100, overlap=2))))
 
+print(" ".join(list(m.generate(100, overlap=None))))
+m.dump_stats(n=1)
+
+m.trim(1)
+
+m.dump_stats(n=1)
+
+print(" ".join(list(m.generate(100, overlap=None))))

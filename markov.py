@@ -18,7 +18,7 @@ class MarkovChain():
         self._key_shuffle = []
 
     def _get_words(self, text):
-        for w in re.finditer(r"[A-Za-z!\-'\)\(\"?,\.]+", text):
+        for w in re.finditer(r"[A-Za-z!\-'?,\.]+", text):
             yield w.group(0)
 
     def _get_groups(self, text):
@@ -60,21 +60,22 @@ class MarkovChain():
         text = text.replace('\n\n', ' NEWLINE ')  # Tokenize paragraph breaks.
         return text
 
+    def _get_random_node(self):
+        self._shuffle()
+        for k in self._chains.keys():
+            return k
+
     def integrate(self, text):
         text = self._normalize_text(text)
         prev = None
         for group in self._get_groups(text):
             if prev is not None:
                 self._chains.setdefault(prev, {})
-                self._chains[prev][group] = self._chains[prev].get(group, 0) + 1
+                pnode = self._chains[prev]
+                pnode[group] = pnode.get(group, 0) + 1
             prev = group
         self._key_shuffle = list(self._chains.keys())
         self._shuffle()
-
-    def _get_random_node(self):
-        self._shuffle()
-        for k in self._chains.keys():
-            return k
 
     def generate(self, length=100, start=None, overlap=None):
         prev = self._get_random_node()
@@ -85,3 +86,40 @@ class MarkovChain():
                     prev = self._get_random_node()
             prev = self._select_next(prev)
             yield " ".join(prev).replace('NEWLINE', "")
+
+    def trim(self, threshold):
+        pops = []
+        changes = False
+        for k, v in self._chains.items():
+            if len(v) <= threshold:
+                pops.append(k)
+        for k in pops:
+            self._chains.pop(k)
+        # Remove all the orphaned nodes.
+        for k, v in self._chains.items():
+            pops = []
+            for j in v:
+                if j not in self._chains:
+                    pops.append(j)
+            for orphan in pops:
+                v.pop(orphan)
+                changes = True
+        if changes:
+            self.trim(threshold)
+        self._key_shuffle = list(self._chains.keys())
+
+    def dump_stats(self, n=4):
+        keys = 0
+        nodes = 0
+        nodes_over_n = 0
+        for k, v in self._chains.items():
+            keys += 1
+            nodes += len(v)
+            if len(v) > n:
+                nodes_over_n += 1
+        print("keys", keys)
+        print("nodes per key", nodes/keys)
+        print(
+            "nodes over", n, nodes_over_n, "({}%)"
+            .format((nodes_over_n/keys)*100)
+        )
