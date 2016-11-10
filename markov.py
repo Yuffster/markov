@@ -14,10 +14,6 @@ class MarkovChain():
         self._size = size
 
     def _get_words(self, text):
-        text = text.replace("“", '"')
-        text = text.replace("”", '"')
-        text = text.replace("’", "'")
-        text = text.replace('\n\n', ' NEWLINE ')  # Tokenize paragraph breaks.
         for w in re.finditer(r"[A-Za-z0-9!\-':\)\(\"?,\.]+", text):
             yield w.group(0)
 
@@ -43,8 +39,15 @@ class MarkovChain():
             if p >= v:
                 return node
 
+    def _normalize_text(self, text):
+        text = text.replace("“", '"')  # Get rid of “smart” qutoes.
+        text = text.replace("”", '"')
+        text = text.replace("’", "'")
+        text = text.replace('\n\n', ' NEWLINE ')  # Tokenize paragraph breaks.
+        return text
+
     def integrate(self, text):
-        text = text.lower()
+        text = self._normalize_text(text)
         prev = None
         for group in self._get_groups(text):
             if prev is not None:
