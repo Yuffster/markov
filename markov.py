@@ -7,11 +7,12 @@ import random
 
 class MarkovChain():
 
-    _chains = {}  # None
+    _chains = None  # {}
     _size = 1
 
     def __init__(self, size=1):
         self._size = size
+        self._chains = {}
 
     def _get_words(self, text):
         for w in re.finditer(r"[A-Za-z0-9!\-':\)\(\"?,\.]+", text):
