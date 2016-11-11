@@ -18,7 +18,7 @@ class MarkovChain():
         self._key_shuffle = []
 
     def _get_words(self, text):
-        for w in re.finditer(r"[A-Za-z!\-'?,\.]+", text):
+        for w in re.finditer(r"[A-Za-z!'?,\.]+", text):
             yield w.group(0)
 
     def _get_groups(self, text):
@@ -85,7 +85,9 @@ class MarkovChain():
                 if prev is None:
                     prev = self._get_random_node()
             prev = self._select_next(prev)
-            yield " ".join(prev).replace('NEWLINE', "")
+            out = " ".join(prev)
+            out = out.replace("NEWLINE", "")
+            yield out
 
     def trim(self, threshold):
         pops = []
