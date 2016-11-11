@@ -10,4 +10,4 @@ m.trim(1)
 
 m.dump_stats(n=1)
 
-print(" ".join(list(m.generate(100, overlap=None))))
+print(" ".join(list(m.generate(words=100, overlap=None))))

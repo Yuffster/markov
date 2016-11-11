@@ -65,6 +65,12 @@ class MarkovChain():
         for k in self._chains.keys():
             return k
 
+    def _get_start_node(self):
+        self._shuffle()
+        for k in self._chains.keys():
+            if k[0][0].isupper():
+                return k
+
     def integrate(self, text):
         text = self._normalize_text(text)
         prev = None
@@ -77,17 +83,31 @@ class MarkovChain():
         self._key_shuffle = list(self._chains.keys())
         self._shuffle()
 
-    def generate(self, length=100, start=None, overlap=None):
-        prev = self._get_random_node()
-        for _ in range(length):
+    def generate(self, words=100, start=None, overlap=None):
+        prev = self._get_start_node()
+        yield self.format_output(prev)
+        total_words = 0
+        while True:
             if overlap:
                 prev = self._get_overlapping_node(prev, overlap)
                 if prev is None:
                     prev = self._get_random_node()
             prev = self._select_next(prev)
-            out = " ".join(prev)
-            out = out.replace("NEWLINE", "")
-            yield out
+            out = self.format_output(prev)
+            total_words += self._size
+            if total_words > words:
+                end = re.match(r"(.*?[!?\.])", out)
+                if (end):
+                    yield end.groups()[0]
+                    break
+            else:
+                yield out
+
+    def format_output(self, node):
+        out = " ".join(node)
+        out = out.replace("NEWLINE", "")
+        out = out.replace(" .", ".")
+        return out
 
     def trim(self, threshold):
         pops = []
