@@ -11,11 +11,13 @@ class MarkovChain():
     _size = 1
     _key_shuffle = None  # Shuffle list of keys in chain.
     _overlap = None
+    _integrations = None # [corpus:[groups]]
 
     def __init__(self, size=1):
         self._size = size
         self._chains = {}
         self._key_shuffle = []
+        self._integrations = []
 
     def _get_words(self, text):
         for w in re.finditer(r"[A-Za-z!'?,\.]+", text):
@@ -57,7 +59,7 @@ class MarkovChain():
         text = text.replace("“", '"')  # Get rid of “smart” qutoes.
         text = text.replace("”", '"')
         text = text.replace("’", "'")
-        text = text.replace('\n\n', ' NEWLINE ')  # Tokenize paragraph breaks.
+        text = text.replace('\n', ' NEWLINE ')  # Tokenize paragraph breaks.
         return text
 
     def _get_random_node(self):
@@ -74,18 +76,23 @@ class MarkovChain():
     def integrate(self, text):
         text = self._normalize_text(text)
         prev = None
+        int_index = []
         for group in self._get_groups(text):
             if prev is not None:
                 self._chains.setdefault(prev, {})
                 pnode = self._chains[prev]
                 pnode[group] = pnode.get(group, 0) + 1
+                int_index.append(self.format_output(group))
             prev = group
+        self._integrations.append(int_index)
         self._key_shuffle = list(self._chains.keys())
         self._shuffle()
 
     def generate(self, words=100, start=None, overlap=None):
         prev = self._get_start_node()
-        yield self.format_output(prev)
+        if prev is None:
+            return None
+        yield self.format_output(prev, color=True)
         total_words = 0
         while True:
             if overlap:
@@ -93,20 +100,25 @@ class MarkovChain():
                 if prev is None:
                     prev = self._get_random_node()
             prev = self._select_next(prev)
-            out = self.format_output(prev)
+            out = self.format_output(prev, color=True)
             total_words += self._size
             if total_words > words:
                 end = re.match(r"(.*?[!?\.])", out)
                 if (end):
-                    yield end.groups()[0]
+                    yield end.groups()[0]+"\033[0m"
                     break
             else:
                 yield out
 
-    def format_output(self, node):
+    def format_output(self, node, color=False):
         out = " ".join(node)
-        out = out.replace("NEWLINE", "")
+        out = out.replace("NEWLINE", "\n")
         out = out.replace(" .", ".")
+        colors = []
+        if color:
+            for i, v in enumerate(self._integrations):
+                if out in v:
+                    out = "\033[{}m{}\033[0m".format(32+i, out)
         return out
 
     def trim(self, threshold):
@@ -139,6 +151,10 @@ class MarkovChain():
             nodes += len(v)
             if len(v) > n:
                 nodes_over_n += 1
+        if nodes == 0:
+            print("No nodes.")
+            return
+        print("corpora", len(self._integrations))
         print("keys", keys)
         print("nodes per key", nodes/keys)
         print(
